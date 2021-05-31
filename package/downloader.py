@@ -1,4 +1,3 @@
-from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.chrome.options import Options
 from selenium import webdriver
 from json import dumps, loads
@@ -52,7 +51,6 @@ def download(video_url: str, output: str) -> bool:
 
     rawVideoLink = get_raw_video_link(video_html)
     if not rawVideoLink:
-        print("No rawVideoLink, exiting.")
         return
 
     video_bytes = fetch_data(rawVideoLink)
@@ -66,62 +64,48 @@ def download(video_url: str, output: str) -> bool:
         return True
 
 
-def download_profile(username: str, save_path: str, videoLinks: list = [], i: int = 0):
-    debug = False
-    if i == 0:
-        try:
-            videoLinks = loads(open("saves.json", 'r').read())
-        except:
-            options = Options()
-            if not debug:
-                options.add_argument("--headless")
-                options.add_argument("--silent")
-                options.add_argument("--disable-gpu")
-                options.add_argument("--log-level=3")
-                options.add_experimental_option(
-                    'excludeSwitches', ['enable-logging'])
-            driver = webdriver.Chrome(options=options)
-            profile = f"https://www.tiktok.com/@{username}/?is_copy_url=1&is_from_webapp=v1"
-            driver.get(profile)
+def download_profile(username: str, save_path: str, __videoLinks: list = [], __i: int = 0):
+    if __i == 0:
+        profile = f"https://www.tiktok.com/@{username}/?is_copy_url=1&is_from_webapp=v1"
 
-            if debug:
-                print(f"Profile URL : {profile}")
+        options = Options()
+        options.add_argument("--headless")
+        options.add_argument("--silent")
+        options.add_argument("--disable-gpu")
+        options.add_argument("--log-level=3")
+        options.add_experimental_option('excludeSwitches', ['enable-logging'])
 
-            last_height = driver.execute_script(
-                "return document.body.scrollHeight")
+        driver = webdriver.Chrome(options=options)
+        driver.get(profile)
 
-            while True:
-                driver.execute_script(
-                    "window.scrollTo(0, document.body.scrollHeight);")
-
-                sleep(1)
-
-                new_height = driver.execute_script(
-                    "return document.body.scrollHeight")
-
-                if new_height == last_height:
-                    break
-
-                last_height = new_height
+        last_height = driver.execute_script(
+            "return document.body.scrollHeight")
+        height=0
+        while height < last_height:
+            driver.execute_script(
+                "window.scrollTo(0, document.body.scrollHeight);")
 
             sleep(1)
 
-            body = driver.page_source
-            for href in findall(r"https:\/\/www.tiktok.com\/@\w+\/video\/\d+", body):
-                if not href in videoLinks:
-                    videoLinks.append(href)
+            height = driver.execute_script(
+                "return document.body.scrollHeight")
 
-            driver.quit()
-            open("saves.json", "w+").write(dumps(videoLinks))
+            last_height = height
+
+        for href in findall(r"https:\/\/www.tiktok.com\/@\w+\/video\/\d+", driver.page_source):
+            if not href in __videoLinks:
+                __videoLinks.append(href)
+
+        driver.quit()
 
     already_saved = listdir(save_path)
-    for link in videoLinks:
+    for link in __videoLinks:
         videoUrl = link.replace("\\u0026", "&")
         videoName = videoUrl.split('/')[-1].split('?')[0] + ".mp4"
         if videoName in already_saved:
             continue
         elif download(videoUrl, save_path + videoName):
-            i += 1
+            __i += 1
 
-    if i < len(videoLinks):
-        download_profile(username, save_path, videoLinks, i)
+    if __i < len(__videoLinks):
+        download_profile(username, save_path, __videoLinks, __i)
