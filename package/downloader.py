@@ -4,7 +4,7 @@ from selenium import webdriver
 from json import dumps, loads
 from requests import get
 from os import listdir
-from re import findall
+from re import findall, match
 from time import sleep
 from math import pi
 
@@ -66,60 +66,62 @@ def download(video_url: str, output: str) -> bool:
         return True
 
 
-def download_profile(username: str, save_path: str, i: int = 0):
-    if i is 0:
-        options = Options()
-        options.add_argument("--headless")
-        options.add_argument("--silent")
-        options.add_argument("--disable-gpu")
-        options.add_argument("--log-level=3")
-        options.add_experimental_option('excludeSwitches', ['enable-logging'])
-        driver = webdriver.Chrome(options=options)
-        profile = f"https://www.tiktok.com/@{username}/"
-        driver.get(profile)
+def download_profile(username: str, save_path: str, videoLinks: list = [], i: int = 0):
+    debug = False
+    if i == 0:
+        try:
+            videoLinks = loads(open("saves.json", 'r').read())
+        except:
+            options = Options()
+            if not debug:
+                options.add_argument("--headless")
+                options.add_argument("--silent")
+                options.add_argument("--disable-gpu")
+                options.add_argument("--log-level=3")
+                options.add_experimental_option(
+                    'excludeSwitches', ['enable-logging'])
+            driver = webdriver.Chrome(options=options)
+            profile = f"https://www.tiktok.com/@{username}/?is_copy_url=1&is_from_webapp=v1"
+            driver.get(profile)
 
-        last_height = driver.execute_script(
-            "return document.body.scrollHeight")
+            if debug:
+                print(f"Profile URL : {profile}")
 
-        while True:
-            driver.execute_script(
-                "window.scrollTo(0, document.body.scrollHeight);")
+            last_height = driver.execute_script(
+                "return document.body.scrollHeight")
+
+            while True:
+                driver.execute_script(
+                    "window.scrollTo(0, document.body.scrollHeight);")
+
+                sleep(1)
+
+                new_height = driver.execute_script(
+                    "return document.body.scrollHeight")
+
+                if new_height == last_height:
+                    break
+
+                last_height = new_height
 
             sleep(1)
 
-            new_height = driver.execute_script(
-                "return document.body.scrollHeight")
-            if new_height == last_height:
-                break
+            body = driver.page_source
+            for href in findall(r"https:\/\/www.tiktok.com\/@\w+\/video\/\d+", body):
+                if not href in videoLinks:
+                    videoLinks.append(href)
 
-            last_height = new_height
-
-        links = WebDriverWait(driver, pi).until(
-            lambda d: d.execute_script("""
-            const Injector = {
-                links: [],
-                challenge: /https:\/\/www.tiktok.com\/@\w+\/video\/\d+/,
-            };
-            for (const link of document.getElementsByTagName("a")) {
-                if (Injector.challenge.test(link.href) && !Injector.links.includes(link.href))
-                    Injector.links.push(link.href);
-            }
-            return Injector.links;
-            """))
-
-        driver.quit()
-        open("saves.json", "w+").write(dumps(links))
-    else:
-        links = loads(open("saves.json", 'r').read())
+            driver.quit()
+            open("saves.json", "w+").write(dumps(videoLinks))
 
     already_saved = listdir(save_path)
-    for link in links:
+    for link in videoLinks:
         videoUrl = link.replace("\\u0026", "&")
-        videoName = videoUrl.split('/')[-1].split('?')[0]
-        if videoName + ".mp4" in already_saved:
+        videoName = videoUrl.split('/')[-1].split('?')[0] + ".mp4"
+        if videoName in already_saved:
             continue
-        if download(videoUrl, save_path + videoName + ".mp4"):
+        elif download(videoUrl, save_path + videoName):
             i += 1
 
-    if i < len(links):
-        download_profile(username, i)
+    if i < len(videoLinks):
+        download_profile(username, save_path, videoLinks, i)

@@ -7,4 +7,4 @@ def main(username: str, save_path: str):
     downloader.download_profile(username, save_path)
 
 if __name__ == "__main__":
-    main("https://www.tiktok.com/@tiktokfunnyhub", "download/")
+    main("username", "destination/")
