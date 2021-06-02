@@ -1,20 +1,22 @@
 from setuptools import setup, find_packages
 
 
-with open('README.md') as f:
+with open("README.md") as f:
     readme = f.read()
+f.close()
 
-with open('LICENSE') as f:
+with open("LICENSE") as f:
     license = f.read()
+f.close()
 
 setup(
-    name='tiktok-downloader',
-    version='1.0.0',
-    description='Python package to download TikTok\'s profile content or just some videos with their URL.',
+    name="tiktok-downloader",
+    version="1.0.0",
+    description="Python package to download TikTok's profile content or just some videos with their URL.",
     long_description=readme,
-    author='Quatrecentquatre',
-    author_email='obvious.ly.dev@gmail.com',
-    url='https://github.com/quatrecentquatre-404/tiktok-downloader',
+    author="Quatrecentquatre",
+    author_email="obvious.ly.dev@gmail.com",
+    url="https://github.com/quatrecentquatre-404/tiktok-downloader",
     license=license,
-    packages=find_packages(exclude=('tests', 'docs'))
+    packages=find_packages(exclude=("tests", "docs"))
 )
